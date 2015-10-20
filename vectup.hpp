@@ -4,14 +4,14 @@
 #include <vector>
 #include <tuple>
 
-namespace vectup {
+namespace uniformcoll {
 
 // a general ordered collection
 // can be a vector (if length not known at compile time)
 // or a tuple (if element types known at compile time)
 // in the latter case, all operations are constexpr
 //
-// C++11 only (and maybe C++14?)
+// C++14 only
 // Will be even more useful once template lambdas are allowed in constexpr
 
 using alloctype = int;
@@ -95,96 +95,97 @@ struct vectup<N,ET> {
 	constexpr std::size_t size() const { return N; }
 };
 
-template<typename F, typename ET1, typename ET2> struct allsame {
-	static const bool value = true;
-	typedef decltype(std::declval<F>()(std::declval<ET1>(),std::declval<ET2>())) type;
-};
+namespace {
 
+	template<typename F, typename ET1, typename ET2> struct allsame {
+		static const bool value = true;
+		typedef decltype(std::declval<F>()(std::declval<ET1>(),std::declval<ET2>())) type;
+	};
 
-template<typename F, typename ET1, typename ET2, typename... Ts>
-struct allsame<F,ET1,typeset<ET2,Ts...>> {
-	typedef decltype(std::declval<F>()(std::declval<ET1>(),std::declval<ET2>())) type;
-	typedef allsame<F,ET1,typeset<Ts...>> rectype;
-	static const bool value = sizeof...(Ts)==0 ||
-			(std::is_same<type,typename rectype::type>::value && rectype::value);
-};
+	template<typename F, typename ET1, typename ET2, typename... Ts>
+	struct allsame<F,ET1,typeset<ET2,Ts...>> {
+		typedef decltype(std::declval<F>()(std::declval<ET1>(),std::declval<ET2>())) type;
+		typedef allsame<F,ET1,typeset<Ts...>> rectype;
+		static const bool value = sizeof...(Ts)==0 ||
+				(std::is_same<type,typename rectype::type>::value && rectype::value);
+	};
 
-template<typename F, typename ET1, typename ET2, typename... Ts>
-struct allsame<F,typeset<ET1,Ts...>,ET2> {
-	typedef decltype(std::declval<F>()(std::declval<ET1>(),std::declval<ET2>())) type;
-	typedef allsame<F,typeset<Ts...>,ET2> rectype;
-	static const bool value = sizeof...(Ts)==0 ||
-			(std::is_same<type,typename rectype::type>::value && rectype::value);
-};
+	template<typename F, typename ET1, typename ET2, typename... Ts>
+	struct allsame<F,typeset<ET1,Ts...>,ET2> {
+		typedef decltype(std::declval<F>()(std::declval<ET1>(),std::declval<ET2>())) type;
+		typedef allsame<F,typeset<Ts...>,ET2> rectype;
+		static const bool value = sizeof...(Ts)==0 ||
+				(std::is_same<type,typename rectype::type>::value && rectype::value);
+	};
 
-template<typename F, typename ET1, typename ET2, typename... T1s, typename... T2s>
-struct allsame<F,typeset<ET1,T1s...>,typeset<ET2,T2s...>> {
-	typedef decltype(std::declval<F>()(std::declval<ET1>(),std::declval<ET2>())) type;
-	typedef allsame<F,typeset<T1s...>,typeset<T2s...>> rectype;
-	static const bool value = sizeof...(T1s)==0 || sizeof...(T2s)==0 || 
-			(std::is_same<type,typename rectype::type>::value && rectype::value);
-};
+	template<typename F, typename ET1, typename ET2, typename... T1s, typename... T2s>
+	struct allsame<F,typeset<ET1,T1s...>,typeset<ET2,T2s...>> {
+		typedef decltype(std::declval<F>()(std::declval<ET1>(),std::declval<ET2>())) type;
+		typedef allsame<F,typeset<T1s...>,typeset<T2s...>> rectype;
+		static const bool value = sizeof...(T1s)==0 || sizeof...(T2s)==0 || 
+				(std::is_same<type,typename rectype::type>::value && rectype::value);
+	};
 
-template<typename F>
-struct allsame<F,typeset<>,typeset<>> {
-	typedef void type;
-	static const bool value = true;
-};
+	template<typename F>
+	struct allsame<F,typeset<>,typeset<>> {
+		typedef void type;
+		static const bool value = true;
+	};
 
-template<typename F, typename ET>
-struct allsame<F,typeset<>,ET> {
-	typedef void type;
-	static const bool value = true;
-};
+	template<typename F, typename ET>
+	struct allsame<F,typeset<>,ET> {
+		typedef void type;
+		static const bool value = true;
+	};
 
-template<typename F, typename ET>
-struct allsame<F,ET,typeset<>> {
-	typedef void type;
-	static const bool value = true;
-};
+	template<typename F, typename ET>
+	struct allsame<F,ET,typeset<>> {
+		typedef void type;
+		static const bool value = true;
+	};
 
-template<typename F, typename E1, typename E2>
-constexpr bool allsame_v
-	= allsame<std::decay_t<F>,typename E1::datatype,typename E2::datatype>::value;
-template<typename F, typename E1, typename E2>
-using allsame_t
-	= typename allsame<std::decay_t<F>,typename E1::datatype,typename E2::datatype>::type;
-	
-template <std::size_t... I, typename F, typename VT1, typename VT2>
-constexpr auto
-zipNarr(F &&f, const VT1 &c1, const VT2 &c2, std::index_sequence<I...>) {
-	return vectup<sizeof...(I), allsame_t<F,VT1,VT2>>
+	template<typename F, typename E1, typename E2>
+	constexpr bool allsame_v
+		= allsame<std::decay_t<F>,typename E1::datatype,typename E2::datatype>::value;
+	template<typename F, typename E1, typename E2>
+	using allsame_t
+		= typename allsame<std::decay_t<F>,typename E1::datatype,typename E2::datatype>::type;
+		
+	template <std::size_t... I, typename F, typename VT1, typename VT2>
+	constexpr auto
+	zipNarr(F &&f, const VT1 &c1, const VT2 &c2, std::index_sequence<I...>) {
+		return vectup<sizeof...(I), allsame_t<F,VT1,VT2>>
+				{f(c1.template get<I>(),c2.template get<I>())...};
+	}
+
+	template <std::size_t... I, typename F, typename VT1, typename VT2,
+			typename Enable=enable<!allsame_v<F,VT1,VT2>>>
+	constexpr auto
+	zipN(F &&f, const VT1 &c1, const VT2 &c2, std::index_sequence<I...>) {
+		return vectup<staticalloc,
+					decltype(f(c1.template get<I>(),c2.template get<I>()))...
+				>
 			{f(c1.template get<I>(),c2.template get<I>())...};
-}
+	}
 
-template <std::size_t... I, typename F, typename VT1, typename VT2,
-		typename Enable=enable<!allsame_v<F,VT1,VT2>>>
-constexpr auto
-zipN(F &&f, const VT1 &c1, const VT2 &c2, std::index_sequence<I...>) {
-	return vectup<staticalloc,
-				decltype(f(c1.template get<I>(),c2.template get<I>()))...
-			>
-		{f(c1.template get<I>(),c2.template get<I>())...};
-}
+	template <std::size_t... I, typename F, typename VT1, typename VT2,
+			typename Enable=enable<allsame_v<F,VT1,VT2>>>
+	constexpr auto
+	zipN(F &&f, const VT1 &c1, const VT2 &c2, const std::index_sequence<I...> &i) {
+		return zipNarr(std::forward<F>(f),c1,c2,i);
+	}
 
-template <std::size_t... I, typename F, typename VT1, typename VT2,
-		typename Enable=enable<allsame_v<F,VT1,VT2>>>
-constexpr auto
-zipN(F &&f, const VT1 &c1, const VT2 &c2, const std::index_sequence<I...> &i) {
-	return zipNarr(std::forward<F>(f),c1,c2,i);
+	template<typename F, typename VT1, typename VT2>
+	constexpr auto
+	zipdyn(F &&f, const VT1 &c1, const VT2 &c2) {
+		vectup<dynamicalloc,allsame_t<F,VT1,VT2>> ret;
+		std::size_t len = std::min(c1.size(),c2.size());
+		ret.reserve(len);
+		for(std::size_t i=0;i<len;i++)
+			ret.emplace_back(f(c1[i],c2[i]));
+		return ret;
+	}
 }
-
-template<typename F, typename VT1, typename VT2>
-constexpr auto
-zipdyn(F &&f, const VT1 &c1, const VT2 &c2) {
-	vectup<dynamicalloc,allsame_t<F,VT1,VT2>> ret;
-	std::size_t len = std::min(c1.size(),c2.size());
-	ret.reserve(len);
-	for(std::size_t i=0;i<len;i++)
-		ret.emplace_back(f(c1[i],c2[i]));
-	return ret;
-}
-
 
 template<typename F, typename ARG1, typename ARG2>
 constexpr auto
@@ -267,12 +268,88 @@ zip(F &&f,
 		(std::size_t)(std::min(N1,N2))>{});
 }
 
+
+namespace{
+
+	template<typename F, typename T, typename VT>
+	constexpr auto
+	foldlimpl(F &&f, T x, const VT &c, std::index_sequence<>) {
+		return x;
+	}
+
+	template<typename F, typename T, typename VT, std::size_t I0, std::size_t... I>
+	constexpr auto
+	foldlimpl(F &&f, T x, const VT &c, std::index_sequence<I0,I...>) {
+		return foldlimpl(std::forward<F>(f),f(x,c.template get<I0>()),c,
+				std::index_sequence<I...>{});
+	}
+
+	template<std::size_t... I>
+	struct nextrevindlst {
+		typedef nextrevindlst<sizeof...(I),I...> type;
+	};
+
+	template<std::size_t I>
+	struct revindlst {
+		typedef typename revindlst<I-1>::type::type type;
+	};
+
+	template<>
+	struct revindlst<0> {
+		typedef nextrevindlst<> type;
+	};
+
+	template<typename> struct makerevseq {};
+
+	template<std::size_t... I>
+	struct makerevseq<nextrevindlst<I...>> {
+		typedef std::index_sequence<I...> type;
+	};
+
+	template<std::size_t I>
+	using make_rev_index_sequence = typename makerevseq<typename revindlst<I>::type>::type;
+
+	template<typename F, typename T, typename VT>
+	constexpr auto
+	foldrimpl(F &&f, T x, const VT &c, std::index_sequence<>) {
+		return x;
+	}
+
+	template<typename F, typename T, typename VT, std::size_t I0, std::size_t... I>
+	constexpr auto
+	foldrimpl(F &&f, T x, const VT &c, std::index_sequence<I0,I...>) {
+		return foldrimpl(std::forward<F>(f),f(c.template get<I0>(),x),c,
+				std::index_sequence<I...>{});
+	}
+
+	template<typename F, typename T, typename VT>
+	constexpr auto
+	foldrflipimpl(F &&f, T x, const VT &c, std::index_sequence<>) {
+		return x;
+	}
+
+	template<typename F, typename T, typename VT, std::size_t I0, std::size_t... I>
+	constexpr auto
+	foldrflipimpl(F &&f, T x, const VT &c, std::index_sequence<I0,I...>) {
+		return foldrflipimpl(std::forward<F>(f),f(x,c.template get<I0>()),c,
+				std::index_sequence<I...>{});
+	}
+
+}
+
 template<typename F, typename T, typename VT>
 constexpr std::decay_t<T>
 foldl(F &&f, T x, const VT &c) {
 	for(auto &&e : c)
 		x = f(std::move(x),e);
 	return x;
+}
+
+template<typename F, typename T, typename... Xs>
+constexpr auto
+foldl(F &&f, T x, const vectup<staticalloc,Xs...> &c) {
+	return foldlimpl(std::forward<F>(f),std::move(x),c,
+			std::make_index_sequence<sizeof...(Xs)>{});
 }
 
 template<typename F, typename T, typename VT>
@@ -291,63 +368,6 @@ foldrflip(F &&f, T x, const VT &c) {
 	return x;
 }
 
-template<typename F, typename T, typename VT>
-constexpr auto
-foldlimpl(F &&f, T x, const VT &c, std::index_sequence<>) {
-	return x;
-}
-
-template<typename F, typename T, typename VT, std::size_t I0, std::size_t... I>
-constexpr auto
-foldlimpl(F &&f, T x, const VT &c, std::index_sequence<I0,I...>) {
-	return foldlimpl(std::forward<F>(f),f(x,c.template get<I0>()),c,
-			std::index_sequence<I...>{});
-}
-
-template<typename F, typename T, typename... Xs>
-constexpr auto
-foldl(F &&f, T x, const vectup<staticalloc,Xs...> &c) {
-	return foldlimpl(std::forward<F>(f),std::move(x),c,
-			std::make_index_sequence<sizeof...(Xs)>{});
-}
-
-template<std::size_t... I>
-struct nextrevindlst {
-	typedef nextrevindlst<sizeof...(I),I...> type;
-};
-
-template<std::size_t I>
-struct revindlst {
-	typedef typename revindlst<I-1>::type::type type;
-};
-
-template<>
-struct revindlst<0> {
-	typedef nextrevindlst<> type;
-};
-
-template<typename> struct makerevseq {};
-
-template<std::size_t... I>
-struct makerevseq<nextrevindlst<I...>> {
-	typedef std::index_sequence<I...> type;
-};
-
-template<std::size_t I>
-using make_rev_index_sequence = typename makerevseq<typename revindlst<I>::type>::type;
-
-template<typename F, typename T, typename VT>
-constexpr auto
-foldrimpl(F &&f, T x, const VT &c, std::index_sequence<>) {
-	return x;
-}
-
-template<typename F, typename T, typename VT, std::size_t I0, std::size_t... I>
-constexpr auto
-foldrimpl(F &&f, T x, const VT &c, std::index_sequence<I0,I...>) {
-	return foldrimpl(std::forward<F>(f),f(c.template get<I0>(),x),c,
-			std::index_sequence<I...>{});
-}
 
 template<typename F, typename T, typename... Xs>
 constexpr auto
@@ -356,18 +376,6 @@ foldr(F &&f, T x, const vectup<staticalloc,Xs...> &c) {
 			make_rev_index_sequence<sizeof...(Xs)>{});
 }
 
-template<typename F, typename T, typename VT>
-constexpr auto
-foldrflipimpl(F &&f, T x, const VT &c, std::index_sequence<>) {
-	return x;
-}
-
-template<typename F, typename T, typename VT, std::size_t I0, std::size_t... I>
-constexpr auto
-foldrflipimpl(F &&f, T x, const VT &c, std::index_sequence<I0,I...>) {
-	return foldrflipimpl(std::forward<F>(f),f(x,c.template get<I0>()),c,
-			std::index_sequence<I...>{});
-}
 
 template<typename F, typename T, typename... Xs>
 constexpr auto
@@ -376,6 +384,6 @@ foldrflip(F &&f, T x, const vectup<staticalloc,Xs...> &c) {
 			make_rev_index_sequence<sizeof...(Xs)>{});
 }
 
-}
+} // end vectup namespace
 
 #endif

@@ -1,9 +1,9 @@
-#include "vectup.hpp"
+#include "../vectup.hpp"
 #include <iostream>
-#include "../tupleutil.hpp"
-#include "../typetostr.h"
+#include "typetostr.h"
 
 using namespace std;
+using namespace uniformcoll;
 
 template<typename T1, typename T2>
 std::ostream &operator<<(std::ostream &os, const std::pair<T1,T2> &v) {
@@ -31,9 +31,9 @@ struct printfn {
 };
 
 template<typename... Ts>
-std::ostream &operator<<(std::ostream &os, const std::tuple<Ts...> &v) {
+std::ostream &operator<<(std::ostream &os, const vectup<staticalloc,Ts...> &v) {
 	os << '<';
-	tuplefoldl(printfn{},v,pair<std::ostream &,bool>{os,false});
+	foldl(printfn{},pair<std::ostream &,bool>{os,false},v);
 	return os << '>';
 }
 
@@ -46,7 +46,6 @@ std::ostream &operator<<(std::ostream &os, const vectup<N,T> &v) {
 	}
 	return os << ')';
 }
-
 
 struct makepair {
 	template<typename T, typename S>
@@ -122,12 +121,14 @@ int main(int argc, char **argv) {
 	check("are same 3&3"s, zip(aresame{},c3,c3));
 
 	check("foldl concat 1"s, foldl(concat{},""s,c1));
-	check("foldr concat 1"s, foldrflip(concat{},""s,c1));
+	check("foldr concat 1"s, foldr(concat{},""s,c1));
+	check("foldrflip concat 1"s, foldrflip(concat{},""s,c1));
 	check("foldl concat 2"s, foldl(concat{},""s,c2));
-	check("foldr concat 2"s, foldrflip(concat{},""s,c2));
+	check("foldr concat 2"s, foldr(concat{},""s,c2));
+	check("foldrflip concat 2"s, foldrflip(concat{},""s,c2));
 	check("foldl concat 3"s, foldl(concat{},""s,c3));
-	check("foldr concat 3"s, foldrflip(concat{},""s,c3));
+	check("foldr concat 3"s, foldr(concat{},""s,c3));
+	check("foldrflip concat 3"s, foldrflip(concat{},""s,c3));
 
 	cout << typetostr<make_rev_index_sequence<0>>() << endl;
-
 }
