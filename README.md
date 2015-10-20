@@ -1,7 +1,5 @@
 # vectup
-Template that can hold either an array (fixed size), vector, or tuple.  Zip and fold defined to allow access.
-
-C++14 only.
+Template that can hold either an array (fixed size), vector, or tuple.  Zip and fold defined to allow access.  C++14 only.
 
 Defined in the namespace uniformcoll
 
