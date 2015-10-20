@@ -7,15 +7,13 @@ Defined in the namespace uniformcoll
 
 One struct defined: `vectup<storage_type, types...>`
 
-If storage_type is `staticalloc`, types is a list of the types to be stored in order (essentially a tuple)
-If storage_type is `dynamicalloc`, types must be a single element and the struct stores a dynamic number of them (essentially a vector)
-If storage_type is a non-negative `int`, types must be a single element and the struct stores that number of that type (essentially a statically allocated array)
+1. If storage_type is `staticalloc`, types is a list of the types to be stored in order (essentially a tuple)
+2. If storage_type is `dynamicalloc`, types must be a single element and the struct stores a dynamic number of them (essentially a vector)
+3. If storage_type is a non-negative `int`, types must be a single element and the struct stores that number of that type (essentially a statically allocated array)
 
-In the first and third case, the struct may be used in constexpr operations.
-
-In the last two cases, the struct defines iterators and the like for normal access
-
-In all cases, the struct defines a templated *member* function `get` that allows access (consistent with a general tuple, but as a member function):
+* In the first and third case, the struct may be used in constexpr operations.
+* In the last two cases, the struct defines iterators and the like for normal access
+* In all cases, the struct defines a templated *member* function `get` that allows access (consistent with a general tuple, but as a member function):
 ```
 uniformcoll::vectup<uniformcoll::dynamicalloc,char> vt;
 // ... code to fill up vt ...
